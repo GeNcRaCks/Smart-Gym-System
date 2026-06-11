@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+
+// Models
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  role      String   @default("MEMBER") // ENUM: MEMBER, TRAINER, ADMIN
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Profile Relations (One-to-One)
+  memberProfile  MemberProfile?
+  trainerProfile TrainerProfile?
+  adminProfile   AdminProfile?
+}
+
+model MemberProfile {
+  id             String         @id @default(uuid())
+  userId         String         @unique
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  height         Float?
+  weight         Float?
+  joinDate       DateTime       @default(now())
+  membershipType String         @default("BASIC") // ENUM: BASIC, PREMIUM, VIP
+  level          String?        // e.g. Beginner, Intermediate
+
+  // Relations
+  workoutRecords WorkoutRecord[]
+  bookings       Booking[]
+  payments       Payment[]
+  reports        Report[]        @relation("MemberReports")
+  assignedPlans  WorkoutPlan[]   @relation("MemberPlans")
+}
+
+model TrainerProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty    String?
+  rating       Float    @default(0.0)
+  availability String?  
+
+  // Relations
+  createdPlans    WorkoutPlan[] @relation("TrainerCreatedPlans")
+  managedBookings Booking[]
+}
+
+model AdminProfile {
+  id          String @id @default(uuid())
+  userId      String @unique
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessLevel Int    @default(1)
+}
+
+model Equipment {
+  id              String    @id @default(uuid())
+  name            String
+  type            String
+  status          String    // e.g., "Operational", "Maintenance"
+  lastMaintenance DateTime?
+}
+
+model WorkoutPlan {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  difficulty  String?
+  duration    Int?     // in minutes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  creatorId    String
+  creator      TrainerProfile @relation("TrainerCreatedPlans", fields: [creatorId], references: [id])
+  
+  assignedToId String?
+  assignedTo   MemberProfile? @relation("MemberPlans", fields: [assignedToId], references: [id])
+
+  exercises    Exercise[]
+}
+
+model Exercise {
+  id            String      @id @default(uuid())
+  name          String
+  sets          Int
+  reps          Int
+  duration      Int?        // in seconds
+  workoutPlanId String
+  workoutPlan   WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+}
+
+model WorkoutRecord {
+  id             String        @id @default(uuid())
+  memberId       String
+  member         MemberProfile @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  date           DateTime      @default(now())
+  duration       Int?          // in minutes
+  caloriesBurned Int?
+  notes          String?
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  memberId    String
+  member      MemberProfile @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  trainerId   String
+  trainer     TrainerProfile @relation(fields: [trainerId], references: [id])
+  date        DateTime
+  timeSlot    String
+  status      String        @default("PENDING") // ENUM: PENDING, CONFIRMED, REJECTED, CANCELLED
+  type        String        @default("IN_PERSON") // ENUM: REMOTE, IN_PERSON
+  meetingLink String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  memberId  String
+  member    MemberProfile @relation(fields: [memberId], references: [id])
+  amount    Float
+  date      DateTime      @default(now())
+  method    String        // ENUM: CREDIT_CARD, PAYPAL, JAZZCASH, BANK_TRANSFER, CASH
+  status    String        @default("COMPLETED") // ENUM: PENDING, COMPLETED, FAILED, REFUNDED
+  reference String?
+  proofUrl  String?
+}
+
+model Report {
+  id            String         @id @default(uuid())
+  type          String         // ENUM: FITNESS, SYSTEM, FINANCIAL
+  generatedDate DateTime       @default(now())
+  data          String         // JSON string storage for report data
+  
+  memberId      String?
+  member        MemberProfile? @relation("MemberReports", fields: [memberId], references: [id])
+}

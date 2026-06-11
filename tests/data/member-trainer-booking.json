@@ -1,0 +1,11 @@
+{
+  "trainers": [
+    { "id": "trainer-1", "name": "John Trainer", "specialty": "Strength", "rating": 4.8 },
+    { "id": "trainer-2", "name": "Jane Trainer", "specialty": "Yoga", "rating": 4.6 }
+  ],
+  "bookings": [
+    { "id": "b-1", "memberId": "member-123", "trainerId": "trainer-1", "date": "2026-06-01T10:00:00.000Z", "timeSlot": "10:00-11:00", "status": "PENDING", "type": "IN_PERSON" },
+    { "id": "b-2", "memberId": "member-123", "trainerId": "trainer-1", "date": "2026-06-02T14:00:00.000Z", "timeSlot": "14:00-15:00", "status": "CONFIRMED", "type": "REMOTE", "meetingLink": "https://zoom.example/j/123" }
+  ],
+  "duplicateBooking": { "memberId": "member-123", "trainerId": "trainer-1", "date": "2026-06-01T10:00:00.000Z", "timeSlot": "10:00-11:00" }
+}

@@ -1,0 +1,37 @@
+{
+  "workoutPlans": [
+    {
+      "id": "plan-001",
+      "name": "Strength Training",
+      "difficulty": "INTERMEDIATE",
+      "duration": 60,
+      "creatorId": "trainer-1",
+      "assignedToId": "member-123",
+      "exercises": [
+        { "id": "ex-1", "name": "Bench Press", "sets": 3, "reps": 8 },
+        { "id": "ex-2", "name": "Squats", "sets": 4, "reps": 10 }
+      ]
+    }
+  ],
+  "workoutRecords": [
+    {
+      "id": "rec-1",
+      "memberId": "member-123",
+      "date": "2026-05-01T10:00:00.000Z",
+      "duration": 45,
+      "caloriesBurned": 250,
+      "status": "COMPLETED"
+    },
+    {
+      "id": "rec-2",
+      "memberId": "member-123",
+      "date": "2026-04-30T09:00:00.000Z",
+      "duration": 60,
+      "caloriesBurned": 350,
+      "status": "COMPLETED"
+    }
+  ],
+  "invalidRecords": [
+    { "id": "rec-x", "memberId": null, "duration": -10, "caloriesBurned": -5 }
+  ]
+}

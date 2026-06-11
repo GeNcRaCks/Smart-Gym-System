@@ -1,0 +1,7 @@
+{
+  "equipments": [
+    { "id": "eq-1", "name": "Treadmill", "type": "Cardio", "status": "AVAILABLE", "lastMaintenance": "2026-04-01T00:00:00.000Z" },
+    { "id": "eq-2", "name": "Barbell", "type": "Strength", "status": "MAINTENANCE", "lastMaintenance": "2026-05-10T00:00:00.000Z" }
+  ],
+  "invalidEquipment": { "id": "bad-eq", "name": "", "type": "", "status": "UNKNOWN" }
+}

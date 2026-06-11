@@ -1,0 +1,12 @@
+{
+  "plans": [
+    { "id": "plan-100", "name": "Full Body", "difficulty": "BEGINNER", "duration": 45, "creatorId": "trainer-1" }
+  ],
+  "exercises": [
+    { "id": "ex-a", "workoutPlanId": "plan-100", "name": "Push Ups", "sets": 3, "reps": 12 },
+    { "id": "ex-b", "workoutPlanId": "plan-100", "name": "Pull Ups", "sets": 3, "reps": 8 }
+  ],
+  "invalidExercises": [
+    { "id": "ex-invalid", "workoutPlanId": "plan-999", "name": "Bad", "sets": -1, "reps": -5 }
+  ]
+}

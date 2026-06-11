@@ -1,0 +1,7 @@
+{
+  "users": [
+    { "id": "user-1", "email": "alice@example.com", "name": "Alice", "role": "MEMBER", "active": true },
+    { "id": "user-2", "email": "bob@example.com", "name": "Bob", "role": "TRAINER", "active": true }
+  ],
+  "deletedUserId": "user-3"
+}
