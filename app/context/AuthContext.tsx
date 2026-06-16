@@ -19,6 +19,7 @@ interface User {
         specialty?: string;
         availability?: string;
         rating?: number;
+        ratingCount?: number;
     };
     adminProfile?: {
         accessLevel?: number;

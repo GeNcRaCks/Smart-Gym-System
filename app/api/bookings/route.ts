@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
+import { sendEmail } from '@/lib/email';
 
 export async function GET(req: NextRequest) {
     const session = await getSession();
@@ -79,29 +80,73 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
     const session = await getSession();
-    if (!session || session.role !== 'TRAINER') {
+    if (!session) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
         const { bookingId, status, meetingLink } = await req.json();
 
-        // Verify trainer owns this booking
+        // Get booking and verify ownership
         const booking = await prisma.booking.findUnique({
             where: { id: bookingId },
-            include: { trainer: true }
+            include: { 
+                trainer: true, 
+                member: { include: { user: true } } 
+            }
         });
 
-        if (!booking || booking.trainer.userId !== session.id) {
-            return NextResponse.json({ error: 'Booking not found or unauthorized' }, { status: 403 });
+        if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+
+        // Member cancellation logic
+        if (session.role === 'MEMBER') {
+            if (booking.member.userId !== session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+            if (status !== 'CANCELLED') return NextResponse.json({ error: 'Members can only cancel bookings' }, { status: 400 });
+            
+            const updated = await prisma.booking.update({
+                where: { id: bookingId },
+                data: { status: 'CANCELLED' }
+            });
+            return NextResponse.json(updated);
         }
 
-        const updated = await prisma.booking.update({
-            where: { id: bookingId },
-            data: { status, meetingLink }
-        });
+        // Trainer logic
+        if (session.role === 'TRAINER') {
+            if (booking.trainer.userId !== session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
-        return NextResponse.json(updated);
+            // Time validation for COMPLETED
+            if (status === 'COMPLETED') {
+                const [time, period] = booking.timeSlot.split(' ');
+                let [hours, minutes] = time.split(':').map(Number);
+                if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+                if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+
+                const bookingDateTime = new Date(booking.date);
+                bookingDateTime.setHours(hours, minutes, 0, 0);
+
+                if (new Date() < bookingDateTime) {
+                    return NextResponse.json({ error: 'Cannot complete a session before its start time' }, { status: 400 });
+                }
+            }
+
+            const updated = await prisma.booking.update({
+                where: { id: bookingId },
+                data: { status, meetingLink }
+            });
+
+            // Email on CONFIRMED
+            if (status === 'CONFIRMED' && booking.status !== 'CONFIRMED') {
+                await sendEmail(
+                    booking.member.user.email,
+                    'Trainer Session Confirmed - SmartGym',
+                    `Hello ${booking.member.user.name},\n\nYour trainer session on ${new Date(booking.date).toLocaleDateString()} at ${booking.timeSlot} has been confirmed.\n\nThank you,\nSmartGym Team`
+                );
+            }
+
+            return NextResponse.json(updated);
+        }
+
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

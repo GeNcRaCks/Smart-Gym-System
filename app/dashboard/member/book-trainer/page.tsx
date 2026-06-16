@@ -99,7 +99,7 @@ export default function BookTrainer() {
                             >
                                 {trainers.map(t => (
                                     <option key={t.id} value={t.id}>
-                                        {t.user.name} ({t.specialty})
+                                        {t.user.name} ({t.specialty}) - {t.rating > 0 ? `${t.rating.toFixed(1)} ⭐` : 'New'}
                                     </option>
                                 ))}
                             </select>
@@ -161,7 +161,7 @@ export default function BookTrainer() {
                     ) : (
                         <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                             {bookings.map((booking) => (
-                                <div key={booking.id} className="card glass-panel p-5 border-l-4 border-indigo-500">
+                                <div key={booking.id} className="card glass-panel p-5 border-l-4 border-indigo-500 flex flex-col gap-3">
                                     <div className="flex justify-between items-start mb-2">
                                         <h3 className="font-semibold text-white">{booking.trainer?.user?.name || 'Unknown Trainer'}</h3>
                                         <span className={`text-xs px-2 py-1 rounded-full ${booking.status === 'CONFIRMED' ? 'bg-green-500/20 text-green-400' :
@@ -181,6 +181,28 @@ export default function BookTrainer() {
                                             {booking.type === 'IN_PERSON' ? 'Gym Floor' : 'Online Call'}
                                         </div>
                                     </div>
+                                    {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
+                                        <button 
+                                            onClick={async () => {
+                                                if (confirm('Are you sure you want to cancel this booking?')) {
+                                                    try {
+                                                        const res = await fetch('/api/bookings', {
+                                                            method: 'PUT',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ bookingId: booking.id, status: 'CANCELLED' })
+                                                        });
+                                                        if (res.ok) {
+                                                            const updatedBookings = await fetch('/api/bookings').then(r => r.json());
+                                                            setBookings(updatedBookings);
+                                                        }
+                                                    } catch(e) {}
+                                                }
+                                            }}
+                                            className="mt-2 text-xs text-red-400 hover:text-red-300 w-fit"
+                                        >
+                                            Cancel Booking
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>

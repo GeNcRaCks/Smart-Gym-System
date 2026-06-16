@@ -51,6 +51,7 @@ model TrainerProfile {
   specialty    String?
   rating       Float    @default(0.0)
   availability String?  
+  ratingCount  Int      @default(0)
 
   // Relations
   createdPlans    WorkoutPlan[] @relation("TrainerCreatedPlans")
@@ -122,6 +123,7 @@ model Booking {
   status      String        @default("PENDING") // ENUM: PENDING, CONFIRMED, REJECTED, CANCELLED
   type        String        @default("IN_PERSON") // ENUM: REMOTE, IN_PERSON
   meetingLink String?
+  isRated     Boolean       @default(false)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }

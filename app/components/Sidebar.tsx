@@ -18,13 +18,20 @@ export default function Sidebar() {
         { href: '/about', label: 'About', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     ];
 
+    const baseMemberLinks = [
+        { href: '/dashboard/member', label: 'Overview', icon: 'M4 6h16M4 12h16m-7 6h7' },
+        { href: '/dashboard/member/workouts', label: 'Workouts', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+        { href: '/dashboard/member/book-trainer', label: 'Book Trainer', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+        { href: '/dashboard/member/progress', label: 'Progress', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+        { href: '/dashboard/member/equipment', label: 'Equipment', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+    ];
+
+    if (user?.memberProfile?.membershipType === 'ELITE') {
+        baseMemberLinks.push({ href: '/dashboard/member/nutrition', label: 'Nutrition Plan', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' });
+    }
+
     const roleLinks = user ? {
-        MEMBER: [
-            { href: '/dashboard/member', label: 'Overview', icon: 'M4 6h16M4 12h16m-7 6h7' },
-            { href: '/dashboard/member/workouts', label: 'Workouts', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
-            { href: '/dashboard/member/book-trainer', label: 'Book Trainer', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-            { href: '/dashboard/member/progress', label: 'Progress', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-        ],
+        MEMBER: baseMemberLinks,
         TRAINER: [
             { href: '/dashboard/trainer', label: 'Overview', icon: 'M4 6h16M4 12h16m-7 6h7' },
             { href: '/dashboard/trainer/manage-workouts', label: 'Plan Workouts', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },

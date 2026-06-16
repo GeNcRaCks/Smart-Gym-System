@@ -52,8 +52,8 @@ export default function TrainerDashboard() {
                         <span className="text-6xl">⭐</span>
                     </div>
                     <h3 className="text-gray-400 font-medium">Rating</h3>
-                    <div className="text-4xl font-bold text-white mt-2">{user?.trainerProfile?.rating || 5.0}</div>
-                    <div className="text-xs text-gray-500 mt-2 font-medium">Client Feedback</div>
+                    <div className="text-4xl font-bold text-white mt-2">{user?.trainerProfile?.rating ? user.trainerProfile.rating.toFixed(1) : 'N/A'}</div>
+                    <div className="text-xs text-gray-500 mt-2 font-medium">{user?.trainerProfile?.ratingCount || 0} Reviews</div>
                 </div>
             </div>
 

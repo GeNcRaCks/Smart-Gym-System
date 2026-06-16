@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 
 export default function PricingPage() {
-    const { user } = useAuth();
+    const { user, refresh } = useAuth();
     const [plan, setPlan] = useState('PRO');
     const [method, setMethod] = useState('CREDIT_CARD');
     const [txId, setTxId] = useState('');
@@ -13,9 +13,9 @@ export default function PricingPage() {
     const [loading, setLoading] = useState(false);
 
     const plans = [
-        { id: 'BASIC', name: 'Basic', price: 29, features: ['Access to gym equipment', '1 group class/week', 'Basic support'] },
-        { id: 'PRO', name: 'Pro', price: 59, features: ['Everything in Basic', '3 group classes/week', 'Personalized workout plan', 'Priority support'] },
-        { id: 'ELITE', name: 'Elite', price: 99, features: ['Everything in Pro', 'Unlimited classes', '1:1 trainer sessions (4/mo)', 'Nutrition plan'] }
+        { id: 'BASIC', name: 'Basic', price: 0, features: ['Access to gym equipment', '5 max sessions per month with trainer', 'Personalized workout plan'] },
+        { id: 'PRO', name: 'Pro', price: 59, features: ['Everything in Basic', '10 max sessions per month with trainer', 'Priority support'] },
+        { id: 'ELITE', name: 'Elite', price: 99, features: ['Everything in Pro', 'Unlimited sessions per month with trainer', 'Nutrition plan'] }
     ];
 
     async function handlePay() {
@@ -29,13 +29,14 @@ export default function PricingPage() {
             const res = await fetch('/api/payments', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: selected.price, method, details: { txId }, proofBase64 })
+                body: JSON.stringify({ amount: selected.price, method, details: { txId, planId: plan }, proofBase64 })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Payment failed');
-            if (data.status === 'PENDING') alert('Payment submitted and awaiting verification by admin.');
-            else alert('Payment successful!');
-            // Optionally redirect or refresh
+            
+            alert('Payment successful! Your membership has been upgraded.');
+            if (refresh) await refresh();
+            window.location.href = '/dashboard/member';
         } catch (e: any) {
             console.error(e);
             alert(e.message || 'Payment failed');
@@ -64,7 +65,13 @@ export default function PricingPage() {
                                 </div>
 
                                 <div>
-                                    <button onClick={() => setPlan(p.id)} className={`w-full ${plan === p.id ? 'btn-primary' : 'btn-outline'}`}>{plan === p.id ? 'Selected' : 'Choose'}</button>
+                                    <button 
+                                        onClick={() => setPlan(p.id)} 
+                                        disabled={p.id === 'BASIC'}
+                                        className={`w-full ${plan === p.id ? 'btn-primary' : 'btn-outline'} ${p.id === 'BASIC' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {p.id === 'BASIC' ? 'Current Plan' : plan === p.id ? 'Selected' : 'Choose'}
+                                    </button>
                                 </div>
                             </div>
                         ))}

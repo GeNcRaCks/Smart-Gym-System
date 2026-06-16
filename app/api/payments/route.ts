@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
 
         if (!memberProfile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
 
-        // For JazzCash / Bank transfers we record as PENDING and allow admin to verify
-        const status = method === 'JAZZCASH' || method === 'BANK_TRANSFER' ? 'PENDING' : 'COMPLETED';
+        // For development, we auto-approve all mock payments so features can be tested immediately
+        const status = 'COMPLETED';
 
         const payment = await prisma.payment.create({
             data: {
@@ -26,6 +26,13 @@ export async function POST(req: NextRequest) {
                 reference: details?.txId ?? null,
             }
         });
+
+        if (details?.planId) {
+            await prisma.memberProfile.update({
+                where: { id: memberProfile.id },
+                data: { membershipType: details.planId }
+            });
+        }
 
         let proofUrl = null;
         if (proofBase64) {
