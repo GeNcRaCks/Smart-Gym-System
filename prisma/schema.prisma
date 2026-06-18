@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 
@@ -42,6 +43,7 @@ model MemberProfile {
   payments       Payment[]
   reports        Report[]        @relation("MemberReports")
   assignedPlans  WorkoutPlan[]   @relation("MemberPlans")
+  ratings        TrainerRating[]
 }
 
 model TrainerProfile {
@@ -55,7 +57,8 @@ model TrainerProfile {
 
   // Relations
   createdPlans    WorkoutPlan[] @relation("TrainerCreatedPlans")
-  managedBookings Booking[]
+  managedBookings Booking[] @relation("TrainerBookings")
+  ratings         TrainerRating[]
 }
 
 model AdminProfile {
@@ -117,7 +120,7 @@ model Booking {
   memberId    String
   member      MemberProfile @relation(fields: [memberId], references: [id], onDelete: Cascade)
   trainerId   String
-  trainer     TrainerProfile @relation(fields: [trainerId], references: [id])
+  trainer     TrainerProfile @relation("TrainerBookings", fields: [trainerId], references: [id])
   date        DateTime
   timeSlot    String
   status      String        @default("PENDING") // ENUM: PENDING, CONFIRMED, REJECTED, CANCELLED
@@ -126,6 +129,17 @@ model Booking {
   isRated     Boolean       @default(false)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+}
+
+model TrainerRating {
+  id        String   @id @default(uuid())
+  trainerId String
+  trainer   TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  memberId  String
+  member    MemberProfile @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  rating    Int      // 1-5
+  feedback  String?
+  createdAt DateTime @default(now())
 }
 
 model Payment {

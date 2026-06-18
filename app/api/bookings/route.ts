@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
-import { sendEmail } from '@/lib/email';
+import { sendBookingApprovalEmail, sendTrainerRequestNotification } from '@/lib/emailService.js';
 
 export async function GET(req: NextRequest) {
     const session = await getSession();
@@ -69,7 +69,21 @@ export async function POST(req: NextRequest) {
                 timeSlot,
                 type,
                 status: 'PENDING'
+            },
+            include: {
+                member: { include: { user: true } },
+                trainer: { include: { user: true } }
             }
+        });
+
+        // Send email to trainer about new booking request
+        await sendTrainerRequestNotification({
+            trainerEmail: booking.trainer.user.email,
+            trainerName: booking.trainer.user.name,
+            memberName: booking.member.user.name,
+            bookingDate: booking.date,
+            timeSlot: booking.timeSlot,
+            bookingType: booking.type
         });
 
         return NextResponse.json(booking);
@@ -91,7 +105,7 @@ export async function PUT(req: NextRequest) {
         const booking = await prisma.booking.findUnique({
             where: { id: bookingId },
             include: { 
-                trainer: true, 
+                trainer: { include: { user: true } }, 
                 member: { include: { user: true } } 
             }
         });
@@ -136,11 +150,15 @@ export async function PUT(req: NextRequest) {
 
             // Email on CONFIRMED
             if (status === 'CONFIRMED' && booking.status !== 'CONFIRMED') {
-                await sendEmail(
-                    booking.member.user.email,
-                    'Trainer Session Confirmed - SmartGym',
-                    `Hello ${booking.member.user.name},\n\nYour trainer session on ${new Date(booking.date).toLocaleDateString()} at ${booking.timeSlot} has been confirmed.\n\nThank you,\nSmartGym Team`
-                );
+                await sendBookingApprovalEmail({
+                    memberEmail: booking.member.user.email,
+                    memberName: booking.member.user.name,
+                    trainerName: booking.trainer.user.name,
+                    bookingDate: booking.date,
+                    timeSlot: booking.timeSlot,
+                    bookingType: booking.type,
+                    meetingLink: meetingLink || null
+                });
             }
 
             return NextResponse.json(updated);

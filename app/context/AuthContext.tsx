@@ -16,6 +16,7 @@ interface User {
         membershipType?: string;
     };
     trainerProfile?: {
+        id?: string;
         specialty?: string;
         availability?: string;
         rating?: number;

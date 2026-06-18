@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const session = await getSession();
     if (!session || session.role !== 'MEMBER') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
-        const bookingId = params.id;
-        const { rating } = await req.json();
+        const { id: bookingId } = await params;
+        const body = await req.json();
+        const { rating, feedback } = body;
 
         if (typeof rating !== 'number' || rating < 1 || rating > 5) {
             return NextResponse.json({ error: 'Invalid rating. Must be between 1 and 5' }, { status: 400 });
@@ -40,8 +41,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const newCount = currentCount + 1;
         const newRating = ((currentRating * currentCount) + rating) / newCount;
 
-        // Transaction to update trainer and booking safely
+        // Transaction to update trainer, booking, and create rating record
         await prisma.$transaction([
+            // Create rating record for history
+            prisma.trainerRating.create({
+                data: {
+                    trainerId: booking.trainerId,
+                    memberId: booking.memberId,
+                    rating: rating,
+                    feedback: feedback || null
+                }
+            }),
             prisma.trainerProfile.update({
                 where: { id: booking.trainerId },
                 data: {

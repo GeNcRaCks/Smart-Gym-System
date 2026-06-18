@@ -3,6 +3,7 @@
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { TrainerRatingsHistory } from '@/app/components/TrainerRatingsHistory';
 
 export default function TrainerDashboard() {
     const { user } = useAuth();
@@ -76,6 +77,11 @@ export default function TrainerDashboard() {
                     <h3 className="font-bold text-white text-lg">Trainer Profile</h3>
                     <p className="text-gray-400 text-sm mt-2">Update your specialty and availability.</p>
                 </Link>
+            </div>
+
+            {/* Ratings History */}
+            <div className="mt-8">
+                <TrainerRatingsHistory />
             </div>
         </div>
     );
