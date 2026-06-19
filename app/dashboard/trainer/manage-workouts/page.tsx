@@ -260,10 +260,13 @@ export default function ManageWorkouts() {
                     <label className="label-text">Total Duration (mins)</label>
                     <input
                         type="number"
+                        min="1"
+                        max="600"
                         className={`input ${fieldErrors.duration ? 'border-red-500/50' : ''}`}
                         placeholder="45"
                         value={plan.duration}
                         onChange={e => handlePlanChange('duration', e.target.value)}
+                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
                         required
                     />
                     {fieldErrors.duration && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.duration}</p>}
@@ -295,10 +298,13 @@ export default function ManageWorkouts() {
                                     <label className="text-xs text-gray-500 mb-1 block">Sets</label>
                                     <input
                                         type="number"
+                                        min="1"
+                                        max="100"
                                         className={`input h-10 text-sm ${fieldErrors[`exercise_${i}_sets`] ? 'border-red-500/50' : ''}`}
                                         placeholder="3"
                                         value={ex.sets}
                                         onChange={e => handleExerciseChange(i, 'sets', e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
                                         required
                                     />
                                     {fieldErrors[`exercise_${i}_sets`] && <p className="text-red-400 text-xs mt-1">{fieldErrors[`exercise_${i}_sets`]}</p>}
@@ -307,10 +313,13 @@ export default function ManageWorkouts() {
                                     <label className="text-xs text-gray-500 mb-1 block">Reps</label>
                                     <input
                                         type="number"
+                                        min="0"
+                                        max="1000"
                                         className={`input h-10 text-sm ${fieldErrors[`exercise_${i}_reps`] ? 'border-red-500/50' : ''}`}
                                         placeholder="12"
                                         value={ex.reps}
                                         onChange={e => handleExerciseChange(i, 'reps', e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
                                     />
                                     {fieldErrors[`exercise_${i}_reps`] && <p className="text-red-400 text-xs mt-1">{fieldErrors[`exercise_${i}_reps`]}</p>}
                                 </div>
@@ -318,10 +327,13 @@ export default function ManageWorkouts() {
                                     <label className="text-xs text-gray-500 mb-1 block">Time (s)</label>
                                     <input
                                         type="number"
+                                        min="0"
+                                        max="86400"
                                         className={`input h-10 text-sm ${fieldErrors[`exercise_${i}_duration`] ? 'border-red-500/50' : ''}`}
                                         placeholder="60"
                                         value={ex.duration}
                                         onChange={e => handleExerciseChange(i, 'duration', e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }}
                                     />
                                     {fieldErrors[`exercise_${i}_duration`] && <p className="text-red-400 text-xs mt-1">{fieldErrors[`exercise_${i}_duration`]}</p>}
                                 </div>

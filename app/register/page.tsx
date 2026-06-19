@@ -18,10 +18,17 @@ export default function Register() {
     const [googleLoading, setGoogleLoading] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        let { name, value } = e.target;
+        
+        // Prevent numbers and special chars in name field
+        if (name === 'name') {
+            value = value.replace(/[^a-zA-Z\s'-]/g, '');
+        }
+
+        setFormData({ ...formData, [name]: value });
         // Clear field error on change
-        if (fieldErrors[e.target.name]) {
-            setFieldErrors(prev => ({ ...prev, [e.target.name]: '' }));
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => ({ ...prev, [name]: '' }));
         }
     };
 
@@ -217,12 +224,12 @@ export default function Register() {
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <label className="label-text">Height (cm)</label>
-                                    <input name="height" type="number" className={`input ${fieldErrors.height ? 'border-red-500/50' : ''}`} placeholder="180" value={formData.profileData.height} onChange={handleProfileChange} />
+                                    <input name="height" type="number" min="50" max="300" className={`input ${fieldErrors.height ? 'border-red-500/50' : ''}`} placeholder="180" value={formData.profileData.height} onChange={handleProfileChange} onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }} />
                                     {fieldErrors.height && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.height}</p>}
                                 </div>
                                 <div>
                                     <label className="label-text">Weight (kg)</label>
-                                    <input name="weight" type="number" className={`input ${fieldErrors.weight ? 'border-red-500/50' : ''}`} placeholder="75" value={formData.profileData.weight} onChange={handleProfileChange} />
+                                    <input name="weight" type="number" min="10" max="500" className={`input ${fieldErrors.weight ? 'border-red-500/50' : ''}`} placeholder="75" value={formData.profileData.weight} onChange={handleProfileChange} onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }} />
                                     {fieldErrors.weight && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.weight}</p>}
                                 </div>
                             </div>

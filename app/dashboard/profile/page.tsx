@@ -28,7 +28,11 @@ export default function ProfilePage() {
     }, [user]);
 
     const handleFieldChange = (field: string, value: string) => {
-        setFormData({ ...formData, [field]: value });
+        let finalValue = value;
+        if (field === 'name') {
+            finalValue = value.replace(/[^a-zA-Z\s'-]/g, '');
+        }
+        setFormData({ ...formData, [field]: finalValue });
         if (fieldErrors[field]) {
             setFieldErrors(prev => ({ ...prev, [field]: '' }));
         }
@@ -144,12 +148,12 @@ export default function ProfilePage() {
                             <>
                                 <div>
                                     <label className="label-text">Weight (kg)</label>
-                                    <input className={`input ${fieldErrors.weight ? 'border-red-500/50' : ''}`} type="number" value={formData.weight} onChange={e => handleFieldChange('weight', e.target.value)} />
+                                    <input className={`input ${fieldErrors.weight ? 'border-red-500/50' : ''}`} type="number" min="10" max="500" value={formData.weight} onChange={e => handleFieldChange('weight', e.target.value)} onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }} />
                                     {fieldErrors.weight && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.weight}</p>}
                                 </div>
                                 <div>
                                     <label className="label-text">Height (cm)</label>
-                                    <input className={`input ${fieldErrors.height ? 'border-red-500/50' : ''}`} type="number" value={formData.height} onChange={e => handleFieldChange('height', e.target.value)} />
+                                    <input className={`input ${fieldErrors.height ? 'border-red-500/50' : ''}`} type="number" min="50" max="300" value={formData.height} onChange={e => handleFieldChange('height', e.target.value)} onKeyDown={(e) => { if (e.key === '-' || e.key === 'e') e.preventDefault(); }} />
                                     {fieldErrors.height && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.height}</p>}
                                 </div>
                                 <div>
