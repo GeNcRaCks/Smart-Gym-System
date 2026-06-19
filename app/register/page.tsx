@@ -134,7 +134,6 @@ export default function Register() {
             {
                 theme: 'filled_black',
                 size: 'large',
-                width: '100%',
                 text: 'signup_with',
                 shape: 'pill',
             }

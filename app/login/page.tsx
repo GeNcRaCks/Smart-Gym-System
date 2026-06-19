@@ -61,7 +61,6 @@ export default function Login() {
             {
                 theme: 'filled_black',
                 size: 'large',
-                width: '100%',
                 text: 'signin_with',
                 shape: 'pill',
             }
