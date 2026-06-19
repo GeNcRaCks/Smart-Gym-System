@@ -14,7 +14,7 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  password  String
+  password  String?
   name      String
   phone     String?
   role      String   @default("MEMBER") // ENUM: MEMBER, TRAINER, ADMIN

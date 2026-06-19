@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword, comparePassword, signJWT, verifyJWT, getSession } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import { validators } from '@/lib/validation';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ routes: string[] }> }) {
     const { routes } = await params;
@@ -10,6 +11,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ rou
     try {
         if (action === 'register') {
             const { email, password, name, phone, role, profileData } = await req.json();
+
+            // Server-side validation
+            if (!name || !validators.name(name)) {
+                return NextResponse.json({ error: 'Name must be at least 2 characters (letters and spaces only)' }, { status: 400 });
+            }
+            if (!email || !validators.email(email)) {
+                return NextResponse.json({ error: 'Please provide a valid email address' }, { status: 400 });
+            }
+            if (!password || !validators.password(password)) {
+                return NextResponse.json({ error: 'Password must be at least 8 characters long' }, { status: 400 });
+            }
 
             // Check if user exists
             const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -56,6 +68,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ rou
             const user = await prisma.user.findUnique({ where: { email } });
             if (!user) {
                 return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+            }
+
+            // Check if user has a password (Google-only users don't)
+            if (!user.password) {
+                return NextResponse.json({ error: 'This account uses Google Sign-In. Please use the "Sign in with Google" button.' }, { status: 400 });
             }
 
             const isValid = await comparePassword(password, user.password);

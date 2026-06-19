@@ -1,6 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
+import { validators } from '@/lib/validation';
+
+function validateWorkoutPayload(body: any): string | null {
+    const { name, description, duration, exercises } = body;
+
+    if (!name || !validators.minLength(name, 2)) {
+        return 'Plan name must be at least 2 characters';
+    }
+    if (!description || !validators.minLength(description, 10)) {
+        return 'Description must be at least 10 characters';
+    }
+    if (duration === undefined || duration === null || !validators.duration(duration)) {
+        return 'Duration must be between 1 and 600 minutes';
+    }
+    if (!Array.isArray(exercises) || exercises.length === 0) {
+        return 'At least one exercise is required';
+    }
+    for (let i = 0; i < exercises.length; i++) {
+        const ex = exercises[i];
+        if (!ex.name || !ex.name.trim()) {
+            return `Exercise ${i + 1}: name is required`;
+        }
+        if (!validators.sets(ex.sets)) {
+            return `Exercise ${i + 1}: sets must be between 1 and 100`;
+        }
+        if (ex.reps !== undefined && ex.reps !== 0 && !validators.reps(ex.reps)) {
+            return `Exercise ${i + 1}: reps must be between 0 and 1000`;
+        }
+    }
+    return null;
+}
 
 export async function GET(req: NextRequest) {
     const session = await getSession();
@@ -49,6 +80,13 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const { name, description, difficulty, duration, exercises, userId } = body;
+
+        // Server-side validation
+        const validationError = validateWorkoutPayload(body);
+        if (validationError) {
+            return NextResponse.json({ error: validationError }, { status: 400 });
+        }
+
         // userId is the Creator ID from the session usually.
 
         // We need the TrainerProfile ID for this user.
@@ -114,6 +152,12 @@ export async function PUT(req: NextRequest) {
     try {
         const body = await req.json();
         const { id, name, description, difficulty, duration, exercises } = body;
+
+        // Server-side validation
+        const validationError = validateWorkoutPayload(body);
+        if (validationError) {
+            return NextResponse.json({ error: validationError }, { status: 400 });
+        }
 
         const updated = await prisma.$transaction(async (tx) => {
             const plan = await tx.workoutPlan.update({

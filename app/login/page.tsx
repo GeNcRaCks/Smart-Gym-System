@@ -9,6 +9,7 @@ export default function Login() {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,6 +23,67 @@ export default function Login() {
             setIsSubmitting(false);
         }
     };
+
+    const handleGoogleSignIn = async (response: any) => {
+        setGoogleLoading(true);
+        setError('');
+        try {
+            const res = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Google sign-in failed');
+
+            // Redirect based on role
+            if (data.user.role === 'ADMIN') window.location.href = '/dashboard/admin';
+            else if (data.user.role === 'TRAINER') window.location.href = '/dashboard/trainer';
+            else window.location.href = '/dashboard/member';
+        } catch (err: any) {
+            setError(err.message || 'Google sign-in failed');
+        } finally {
+            setGoogleLoading(false);
+        }
+    };
+
+    // Initialize Google Sign-In
+    const initializeGoogle = () => {
+        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+        if (!clientId || !(window as any).google) return;
+
+        (window as any).google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleSignIn,
+        });
+        (window as any).google.accounts.id.renderButton(
+            document.getElementById('google-signin-btn'),
+            {
+                theme: 'filled_black',
+                size: 'large',
+                width: '100%',
+                text: 'signin_with',
+                shape: 'pill',
+            }
+        );
+    };
+
+    // Try to init Google on mount
+    useState(() => {
+        if (typeof window !== 'undefined') {
+            if ((window as any).google) {
+                setTimeout(initializeGoogle, 100);
+            } else {
+                const interval = setInterval(() => {
+                    if ((window as any).google) {
+                        clearInterval(interval);
+                        initializeGoogle();
+                    }
+                }, 200);
+                setTimeout(() => clearInterval(interval), 5000);
+            }
+        }
+    });
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 pt-[var(--header-height)]">
@@ -66,6 +128,18 @@ export default function Login() {
                         {isSubmitting ? 'Signing in...' : 'Sign In'}
                     </button>
                 </form>
+
+                {/* Divider */}
+                <div className="relative my-8">
+                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+                    <div className="relative flex justify-center text-sm"><span className="px-4 bg-[var(--color-surface)] text-gray-500">or</span></div>
+                </div>
+
+                {/* Google Sign-In */}
+                <div className="flex justify-center">
+                    <div id="google-signin-btn" className="w-full"></div>
+                </div>
+                {googleLoading && <p className="text-center text-gray-400 text-sm mt-4">Signing in with Google...</p>}
 
                 <p className="mt-8 text-center text-gray-400">
                     Don't have an account? <Link href="/register" className="text-white hover:text-indigo-400 hover:underline font-bold transition-colors ml-1">Join Free</Link>

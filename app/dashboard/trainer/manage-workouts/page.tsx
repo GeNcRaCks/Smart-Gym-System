@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
+import { validators, errorMessages } from '@/lib/validation';
 
 export default function ManageWorkouts() {
     const { user } = useAuth();
     const [workouts, setWorkouts] = useState<any[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
     // Form State
     const [plan, setPlan] = useState({
@@ -41,14 +43,73 @@ export default function ManageWorkouts() {
         });
     };
 
+    const handleRemoveExercise = (index: number) => {
+        if (plan.exercises.length <= 1) return;
+        const newExercises = plan.exercises.filter((_, i) => i !== index);
+        setPlan({ ...plan, exercises: newExercises });
+        // Clear exercise-specific errors
+        const newErrors = { ...fieldErrors };
+        Object.keys(newErrors).forEach(key => {
+            if (key.startsWith(`exercise_${index}_`)) delete newErrors[key];
+        });
+        setFieldErrors(newErrors);
+    };
+
     const handleExerciseChange = (index: number, field: string, value: string) => {
         const newExercises: any = [...plan.exercises];
         newExercises[index][field] = value;
         setPlan({ ...plan, exercises: newExercises });
+        // Clear field error on change
+        const errorKey = `exercise_${index}_${field}`;
+        if (fieldErrors[errorKey]) {
+            setFieldErrors(prev => ({ ...prev, [errorKey]: '' }));
+        }
+    };
+
+    const handlePlanChange = (field: string, value: string) => {
+        setPlan({ ...plan, [field]: value });
+        if (fieldErrors[field]) {
+            setFieldErrors(prev => ({ ...prev, [field]: '' }));
+        }
+    };
+
+    const validateForm = (): boolean => {
+        const errors: Record<string, string> = {};
+
+        // Validate plan fields
+        if (!validators.minLength(plan.name, 2)) {
+            errors.name = errorMessages.planName;
+        }
+        if (!validators.minLength(plan.description, 10)) {
+            errors.description = errorMessages.description;
+        }
+        if (!plan.duration || !validators.duration(plan.duration)) {
+            errors.duration = errorMessages.duration;
+        }
+
+        // Validate exercises
+        plan.exercises.forEach((ex, i) => {
+            if (!ex.name.trim()) {
+                errors[`exercise_${i}_name`] = errorMessages.exerciseName;
+            }
+            if (!ex.sets || !validators.sets(ex.sets)) {
+                errors[`exercise_${i}_sets`] = errorMessages.sets;
+            }
+            if (ex.reps && !validators.reps(ex.reps)) {
+                errors[`exercise_${i}_reps`] = errorMessages.reps;
+            }
+            if (ex.duration && !validators.exerciseDuration(ex.duration)) {
+                errors[`exercise_${i}_duration`] = errorMessages.exerciseDuration;
+            }
+        });
+
+        setFieldErrors(errors);
+        return Object.keys(errors).length === 0;
     };
 
     const handleEdit = (workout: any) => {
         setEditingId(workout.id);
+        setFieldErrors({});
         setPlan({
             name: workout.name,
             description: workout.description,
@@ -80,6 +141,13 @@ export default function ManageWorkouts() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!validateForm()) {
+            // Scroll to first error
+            const firstErrorEl = document.querySelector('.text-red-400');
+            if (firstErrorEl) firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
 
         const payload = {
             ...plan,
@@ -117,6 +185,7 @@ export default function ManageWorkouts() {
                 exercises: [{ name: '', sets: '', reps: '', duration: '' }]
             });
             setEditingId(null);
+            setFieldErrors({});
             fetchWorkouts();
         } catch (error) {
             console.error(error);
@@ -132,6 +201,7 @@ export default function ManageWorkouts() {
                     <button
                         onClick={() => {
                             setEditingId(null);
+                            setFieldErrors({});
                             setPlan({
                                 name: '',
                                 description: '',
@@ -152,19 +222,20 @@ export default function ManageWorkouts() {
                     <div>
                         <label className="label-text">Plan Name</label>
                         <input
-                            className="input"
+                            className={`input ${fieldErrors.name ? 'border-red-500/50' : ''}`}
                             placeholder="e.g. 30-Day Shred"
                             value={plan.name}
-                            onChange={e => setPlan({ ...plan, name: e.target.value })}
+                            onChange={e => handlePlanChange('name', e.target.value)}
                             required
                         />
+                        {fieldErrors.name && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.name}</p>}
                     </div>
                     <div>
                         <label className="label-text">Difficulty</label>
                         <select
                             className="input"
                             value={plan.difficulty}
-                            onChange={e => setPlan({ ...plan, difficulty: e.target.value })}
+                            onChange={e => handlePlanChange('difficulty', e.target.value)}
                         >
                             <option>Beginner</option>
                             <option>Intermediate</option>
@@ -176,24 +247,26 @@ export default function ManageWorkouts() {
                 <div>
                     <label className="label-text">Description</label>
                     <textarea
-                        className="input min-h-[100px]"
-                        placeholder="Briefly describe the goal of this workout..."
+                        className={`input min-h-[100px] ${fieldErrors.description ? 'border-red-500/50' : ''}`}
+                        placeholder="Briefly describe the goal of this workout (at least 10 characters)..."
                         value={plan.description}
-                        onChange={e => setPlan({ ...plan, description: e.target.value })}
+                        onChange={e => handlePlanChange('description', e.target.value)}
                         required
                     />
+                    {fieldErrors.description && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.description}</p>}
                 </div>
 
                 <div>
                     <label className="label-text">Total Duration (mins)</label>
                     <input
                         type="number"
-                        className="input"
+                        className={`input ${fieldErrors.duration ? 'border-red-500/50' : ''}`}
                         placeholder="45"
                         value={plan.duration}
-                        onChange={e => setPlan({ ...plan, duration: e.target.value })}
+                        onChange={e => handlePlanChange('duration', e.target.value)}
                         required
                     />
+                    {fieldErrors.duration && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.duration}</p>}
                 </div>
 
                 <div className="border-t border-white/10 pt-6">
@@ -206,48 +279,64 @@ export default function ManageWorkouts() {
 
                     <div className="space-y-4">
                         {plan.exercises.map((ex, i) => (
-                            <div key={i} className="grid grid-cols-12 gap-3 items-end p-4 bg-white/5 rounded-xl border border-white/5">
+                            <div key={i} className="grid grid-cols-12 gap-3 items-start p-4 bg-white/5 rounded-xl border border-white/5 relative">
                                 <div className="col-span-12 md:col-span-4">
                                     <label className="text-xs text-gray-500 mb-1 block">Exercise Name</label>
                                     <input
-                                        className="input h-10 text-sm"
+                                        className={`input h-10 text-sm ${fieldErrors[`exercise_${i}_name`] ? 'border-red-500/50' : ''}`}
                                         placeholder="e.g. Bench Press"
                                         value={ex.name}
                                         onChange={e => handleExerciseChange(i, 'name', e.target.value)}
                                         required
                                     />
+                                    {fieldErrors[`exercise_${i}_name`] && <p className="text-red-400 text-xs mt-1">{fieldErrors[`exercise_${i}_name`]}</p>}
                                 </div>
                                 <div className="col-span-4 md:col-span-2">
                                     <label className="text-xs text-gray-500 mb-1 block">Sets</label>
                                     <input
                                         type="number"
-                                        className="input h-10 text-sm"
+                                        className={`input h-10 text-sm ${fieldErrors[`exercise_${i}_sets`] ? 'border-red-500/50' : ''}`}
                                         placeholder="3"
                                         value={ex.sets}
                                         onChange={e => handleExerciseChange(i, 'sets', e.target.value)}
                                         required
                                     />
+                                    {fieldErrors[`exercise_${i}_sets`] && <p className="text-red-400 text-xs mt-1">{fieldErrors[`exercise_${i}_sets`]}</p>}
                                 </div>
-                                <div className="col-span-4 md:col-span-3">
+                                <div className="col-span-4 md:col-span-2">
                                     <label className="text-xs text-gray-500 mb-1 block">Reps</label>
                                     <input
                                         type="number"
-                                        className="input h-10 text-sm"
+                                        className={`input h-10 text-sm ${fieldErrors[`exercise_${i}_reps`] ? 'border-red-500/50' : ''}`}
                                         placeholder="12"
                                         value={ex.reps}
                                         onChange={e => handleExerciseChange(i, 'reps', e.target.value)}
                                     />
+                                    {fieldErrors[`exercise_${i}_reps`] && <p className="text-red-400 text-xs mt-1">{fieldErrors[`exercise_${i}_reps`]}</p>}
                                 </div>
-                                <div className="col-span-4 md:col-span-3">
+                                <div className="col-span-3 md:col-span-3">
                                     <label className="text-xs text-gray-500 mb-1 block">Time (s)</label>
                                     <input
                                         type="number"
-                                        className="input h-10 text-sm"
+                                        className={`input h-10 text-sm ${fieldErrors[`exercise_${i}_duration`] ? 'border-red-500/50' : ''}`}
                                         placeholder="60"
                                         value={ex.duration}
                                         onChange={e => handleExerciseChange(i, 'duration', e.target.value)}
                                     />
+                                    {fieldErrors[`exercise_${i}_duration`] && <p className="text-red-400 text-xs mt-1">{fieldErrors[`exercise_${i}_duration`]}</p>}
                                 </div>
+                                {plan.exercises.length > 1 && (
+                                    <div className="col-span-1 flex items-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveExercise(i)}
+                                            className="h-10 w-10 flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                                            title="Remove exercise"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

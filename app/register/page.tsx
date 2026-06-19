@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Link from 'next/link';
+import { validators, errorMessages } from '@/lib/validation';
 
 export default function Register() {
     const { register } = useAuth();
@@ -12,10 +13,16 @@ export default function Register() {
         profileData: { height: '', weight: '', membershipType: 'BASIC', level: 'Beginner' }
     });
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        // Clear field error on change
+        if (fieldErrors[e.target.name]) {
+            setFieldErrors(prev => ({ ...prev, [e.target.name]: '' }));
+        }
     };
 
     const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -23,10 +30,52 @@ export default function Register() {
             ...formData,
             profileData: { ...formData.profileData, [e.target.name]: e.target.value }
         });
+        if (fieldErrors[e.target.name]) {
+            setFieldErrors(prev => ({ ...prev, [e.target.name]: '' }));
+        }
+    };
+
+    const validateStep1 = (): boolean => {
+        const errors: Record<string, string> = {};
+
+        if (!validators.name(formData.name)) {
+            errors.name = errorMessages.name;
+        }
+        if (!validators.email(formData.email)) {
+            errors.email = errorMessages.email;
+        }
+        if (!validators.password(formData.password)) {
+            errors.password = errorMessages.password;
+        }
+
+        setFieldErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const validateStep2 = (): boolean => {
+        const errors: Record<string, string> = {};
+
+        if (formData.profileData.height && !validators.height(formData.profileData.height)) {
+            errors.height = errorMessages.height;
+        }
+        if (formData.profileData.weight && !validators.weight(formData.profileData.weight)) {
+            errors.weight = errorMessages.weight;
+        }
+
+        setFieldErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleNextStep = () => {
+        if (validateStep1()) {
+            setStep(2);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!validateStep2()) return;
+
         setIsSubmitting(true);
         setError('');
 
@@ -47,6 +96,68 @@ export default function Register() {
             setIsSubmitting(false);
         }
     };
+
+    const handleGoogleSignUp = async (response: any) => {
+        setGoogleLoading(true);
+        setError('');
+        try {
+            const res = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Google sign-up failed');
+
+            // Redirect based on role
+            if (data.user.role === 'ADMIN') window.location.href = '/dashboard/admin';
+            else if (data.user.role === 'TRAINER') window.location.href = '/dashboard/trainer';
+            else window.location.href = '/dashboard/member';
+        } catch (err: any) {
+            setError(err.message || 'Google sign-up failed');
+        } finally {
+            setGoogleLoading(false);
+        }
+    };
+
+    // Initialize Google Sign-In
+    const initializeGoogle = () => {
+        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+        if (!clientId || !(window as any).google) return;
+
+        (window as any).google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleSignUp,
+        });
+        (window as any).google.accounts.id.renderButton(
+            document.getElementById('google-signup-btn'),
+            {
+                theme: 'filled_black',
+                size: 'large',
+                width: '100%',
+                text: 'signup_with',
+                shape: 'pill',
+            }
+        );
+    };
+
+    // Try to init Google on mount
+    useState(() => {
+        if (typeof window !== 'undefined') {
+            if ((window as any).google) {
+                setTimeout(initializeGoogle, 100);
+            } else {
+                // Wait for the script to load
+                const interval = setInterval(() => {
+                    if ((window as any).google) {
+                        clearInterval(interval);
+                        initializeGoogle();
+                    }
+                }, 200);
+                setTimeout(() => clearInterval(interval), 5000);
+            }
+        }
+    });
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 pt-[var(--header-height)]">
@@ -69,17 +180,36 @@ export default function Register() {
                         <div className="space-y-6 animate-fade-in">
                             <div>
                                 <label className="label-text">Full Name</label>
-                                <input name="name" type="text" className="input" placeholder="John Doe" value={formData.name} onChange={handleChange} required />
+                                <input name="name" type="text" className={`input ${fieldErrors.name ? 'border-red-500/50' : ''}`} placeholder="John Doe" value={formData.name} onChange={handleChange} required />
+                                {fieldErrors.name && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.name}</p>}
                             </div>
                             <div>
                                 <label className="label-text">Email Address</label>
-                                <input name="email" type="email" className="input" placeholder="john@example.com" value={formData.email} onChange={handleChange} required />
+                                <input name="email" type="email" className={`input ${fieldErrors.email ? 'border-red-500/50' : ''}`} placeholder="john@example.com" value={formData.email} onChange={handleChange} required />
+                                {fieldErrors.email && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.email}</p>}
                             </div>
                             <div>
                                 <label className="label-text">Password</label>
-                                <input name="password" type="password" className="input" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
+                                <input name="password" type="password" className={`input ${fieldErrors.password ? 'border-red-500/50' : ''}`} placeholder="••••••••" value={formData.password} onChange={handleChange} required />
+                                {fieldErrors.password && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.password}</p>}
+                                {!fieldErrors.password && formData.password.length > 0 && formData.password.length < 8 && (
+                                    <p className="text-yellow-500/70 text-xs mt-1.5 ml-1">{formData.password.length}/8 characters minimum</p>
+                                )}
                             </div>
-                            <button type="button" onClick={() => setStep(2)} className="w-full btn btn-primary mt-4 text-lg h-14">Next Step</button>
+
+                            <button type="button" onClick={handleNextStep} className="w-full btn btn-primary mt-4 text-lg h-14">Next Step</button>
+
+                            {/* Divider */}
+                            <div className="relative my-2">
+                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+                                <div className="relative flex justify-center text-sm"><span className="px-4 bg-[var(--color-surface)] text-gray-500">or</span></div>
+                            </div>
+
+                            {/* Google Sign-Up */}
+                            <div className="flex justify-center">
+                                <div id="google-signup-btn" className="w-full"></div>
+                            </div>
+                            {googleLoading && <p className="text-center text-gray-400 text-sm">Signing up with Google...</p>}
                         </div>
                     )}
 
@@ -88,11 +218,13 @@ export default function Register() {
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <label className="label-text">Height (cm)</label>
-                                    <input name="height" type="number" className="input" placeholder="180" value={formData.profileData.height} onChange={handleProfileChange} />
+                                    <input name="height" type="number" className={`input ${fieldErrors.height ? 'border-red-500/50' : ''}`} placeholder="180" value={formData.profileData.height} onChange={handleProfileChange} />
+                                    {fieldErrors.height && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.height}</p>}
                                 </div>
                                 <div>
                                     <label className="label-text">Weight (kg)</label>
-                                    <input name="weight" type="number" className="input" placeholder="75" value={formData.profileData.weight} onChange={handleProfileChange} />
+                                    <input name="weight" type="number" className={`input ${fieldErrors.weight ? 'border-red-500/50' : ''}`} placeholder="75" value={formData.profileData.weight} onChange={handleProfileChange} />
+                                    {fieldErrors.weight && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.weight}</p>}
                                 </div>
                             </div>
                             <div>

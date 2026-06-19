@@ -2,12 +2,14 @@
 
 import { useAuth } from '@/app/context/AuthContext';
 import { useEffect, useState } from 'react';
+import { validators, errorMessages } from '@/lib/validation';
 
 export default function ProfilePage() {
     const { user, loading } = useAuth();
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<any>({});
     const [msg, setMsg] = useState('');
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (user) {
@@ -25,8 +27,45 @@ export default function ProfilePage() {
         }
     }, [user]);
 
+    const handleFieldChange = (field: string, value: string) => {
+        setFormData({ ...formData, [field]: value });
+        if (fieldErrors[field]) {
+            setFieldErrors(prev => ({ ...prev, [field]: '' }));
+        }
+    };
+
+    const validateProfile = (): boolean => {
+        const errors: Record<string, string> = {};
+
+        if (!validators.name(formData.name)) {
+            errors.name = errorMessages.name;
+        }
+        if (!validators.email(formData.email)) {
+            errors.email = errorMessages.email;
+        }
+        // Only validate password if user typed something
+        if (formData.password && !validators.password(formData.password)) {
+            errors.password = errorMessages.password;
+        }
+
+        // Member-specific validations
+        if (user?.role === 'MEMBER') {
+            if (formData.weight && !validators.weight(formData.weight)) {
+                errors.weight = errorMessages.weight;
+            }
+            if (formData.height && !validators.height(formData.height)) {
+                errors.height = errorMessages.height;
+            }
+        }
+
+        setFieldErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!validateProfile()) return;
+
         try {
             const res = await fetch('/api/users', {
                 method: 'PUT',
@@ -36,6 +75,7 @@ export default function ProfilePage() {
             if (res.ok) {
                 setMsg('Profile updated successfully! Refresh to see changes.');
                 setIsEditing(false);
+                setFieldErrors({});
                 window.location.reload();
             } else {
                 setMsg('Update failed. Try again.');
@@ -56,7 +96,7 @@ export default function ProfilePage() {
             {/* Header / Identity with Edit Button */}
             <div className="glass-panel p-8 flex flex-col md:flex-row items-center gap-8 relative">
                 <button
-                    onClick={() => setIsEditing(!isEditing)}
+                    onClick={() => { setIsEditing(!isEditing); setFieldErrors({}); }}
                     className="absolute top-8 right-8 btn btn-outline text-xs px-4 py-2"
                 >
                     {isEditing ? 'Cancel' : 'Edit Profile'}
@@ -82,15 +122,21 @@ export default function ProfilePage() {
                     <div className="grid md:grid-cols-2 gap-6">
                         <div>
                             <label className="label-text">Full Name</label>
-                            <input className="input" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                            <input className={`input ${fieldErrors.name ? 'border-red-500/50' : ''}`} value={formData.name} onChange={e => handleFieldChange('name', e.target.value)} />
+                            {fieldErrors.name && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.name}</p>}
                         </div>
                         <div>
                             <label className="label-text">Email</label>
-                            <input className="input" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+                            <input className={`input ${fieldErrors.email ? 'border-red-500/50' : ''}`} value={formData.email} onChange={e => handleFieldChange('email', e.target.value)} />
+                            {fieldErrors.email && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.email}</p>}
                         </div>
                         <div>
                             <label className="label-text">New Password (leave blank to keep current)</label>
-                            <input className="input" type="password" placeholder="******" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
+                            <input className={`input ${fieldErrors.password ? 'border-red-500/50' : ''}`} type="password" placeholder="******" value={formData.password} onChange={e => handleFieldChange('password', e.target.value)} />
+                            {fieldErrors.password && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.password}</p>}
+                            {!fieldErrors.password && formData.password && formData.password.length > 0 && formData.password.length < 8 && (
+                                <p className="text-yellow-500/70 text-xs mt-1.5 ml-1">{formData.password.length}/8 characters minimum</p>
+                            )}
                         </div>
 
                         {/* Member Specifics */}
@@ -98,15 +144,17 @@ export default function ProfilePage() {
                             <>
                                 <div>
                                     <label className="label-text">Weight (kg)</label>
-                                    <input className="input" type="number" value={formData.weight} onChange={e => setFormData({ ...formData, weight: e.target.value })} />
+                                    <input className={`input ${fieldErrors.weight ? 'border-red-500/50' : ''}`} type="number" value={formData.weight} onChange={e => handleFieldChange('weight', e.target.value)} />
+                                    {fieldErrors.weight && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.weight}</p>}
                                 </div>
                                 <div>
                                     <label className="label-text">Height (cm)</label>
-                                    <input className="input" type="number" value={formData.height} onChange={e => setFormData({ ...formData, height: e.target.value })} />
+                                    <input className={`input ${fieldErrors.height ? 'border-red-500/50' : ''}`} type="number" value={formData.height} onChange={e => handleFieldChange('height', e.target.value)} />
+                                    {fieldErrors.height && <p className="text-red-400 text-xs mt-1.5 ml-1">{fieldErrors.height}</p>}
                                 </div>
                                 <div>
                                     <label className="label-text">Level</label>
-                                    <select className="input" value={formData.level} onChange={e => setFormData({ ...formData, level: e.target.value })}>
+                                    <select className="input" value={formData.level} onChange={e => handleFieldChange('level', e.target.value)}>
                                         <option>Beginner</option>
                                         <option>Intermediate</option>
                                         <option>Advanced</option>
@@ -120,11 +168,11 @@ export default function ProfilePage() {
                             <>
                                 <div>
                                     <label className="label-text">Availability</label>
-                                    <input className="input" value={formData.availability} onChange={e => setFormData({ ...formData, availability: e.target.value })} />
+                                    <input className="input" value={formData.availability} onChange={e => handleFieldChange('availability', e.target.value)} />
                                 </div>
                                 <div>
                                     <label className="label-text">Specialty</label>
-                                    <input className="input" value={formData.specialty} onChange={e => setFormData({ ...formData, specialty: e.target.value })} />
+                                    <input className="input" value={formData.specialty} onChange={e => handleFieldChange('specialty', e.target.value)} />
                                 </div>
                             </>
                         )}
